@@ -1,0 +1,108 @@
+<html>
+	<head>
+		<title>Sphero Droid</title>
+	</head>
+	<body>
+		<button id="pair">Pair</button>
+
+		<script type="text/javascript">
+
+			function hexStringToByteArray(hexString) {
+  // Check if the hexadecimal string has an even number of characters
+  if (hexString.length % 2 != 0) {
+    throw "Hex string must have an even number of characters";
+  }
+
+  // Create a new array to store the byte values
+  let byteArray = [];
+
+  // Iterate over the string in pairs to convert each byte
+  for (let i = 0; i < hexString.length; i += 2) {
+    // Get the hexadecimal pair and convert it to an integer
+    let hexPair = hexString.substr(i, 2);
+    let byteValue = parseInt(hexPair, 16);
+
+    // Add the byte value to the array
+    byteArray.push(byteValue);
+  }
+
+  return byteArray;
+}
+
+			function to_array_buffer(array) {
+    var length = array.length;
+    var buffer = new ArrayBuffer( length * 2 );
+    var view = new Uint16Array(buffer);
+    for ( var i = 0; i < length; i++) {
+        view[i] = array[i];
+    }
+    return buffer;
+}
+
+			function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+			const bd_addr = "f6:81:2d:36:ec:8e";
+			const dev_name = "D2-EC8E";
+
+			const service_p_uuid = 0x2800;	
+			const service_1_uuid = "00020001-574f-4f20-5370-6865726f2121";
+			const char_15_uuid =    "00020005-574f-4f20-5370-6865726f2121";
+
+			const service_2_uuid = "00010001-574f-4f20-5370-6865726f2121";
+			const char_22_uuid =    "00010002-574f-4f20-5370-6865726f2121";
+			
+			async function pair() {
+				let filter;
+				filter = {
+					filters: [{
+						name: dev_name
+					}],
+					optionalServices: [
+						service_p_uuid, 
+						service_1_uuid, 
+						service_2_uuid
+					]
+				};
+				//filter = {acceptAllDevices:true};
+				console.log("filters", filter);
+
+				const device = await window.navigator.bluetooth.requestDevice(filter);
+
+				console.log("device", device);
+
+				/*for(let i = 0; i < 10; i++) {
+				console.log("recon", i);
+				await device.gatt.connect();
+					await sleep(2000);
+				}
+				*/
+				const gatt_server = await device.gatt.connect();
+				console.log("GATT connected", gatt_server);
+				
+				//const services = await gatt_server.getPrimaryServices();
+				//console.log("servicesssss", services);
+
+				//const service_p = await gatt_server.getPrimaryService(service_p_uuid);
+				//console.log("service p", service_p);
+				const service_1 = await gatt_server.getPrimaryService(service_1_uuid);
+
+				console.log("service", service_1);
+
+				const chars = await service_1.getCharacteristics();
+				console.log("chars", chars);
+
+				const char_15 = await service_1.getCharacteristic(char_15_uuid);
+				console.log("char", char_15);
+
+				const char_15_val = to_array_buffer(hexStringToByteArray("757365746865666f7263652e2e2e62616e64"));
+				console.log("value", char_15_val);
+				const resp = await char_15.writeValueWithResponse(char_15_val);
+				console.log("resp", resp);
+			}
+
+			document.getElementById("pair").addEventListener("click", pair);
+		</script>
+	</body>
+</html>
